@@ -1,10 +1,34 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { View, StyleSheet, Image, TouchableOpacity, Text } from "react-native";
 import Torch from "react-native-torch";
-import Shake from '@shakebugs/react-native-shake';
+import { Accelerometer } from 'expo-sensors';
 
 export default function App() {
   const [toggle, setToggle] = useState(false);
+  const [{ x, y, z }, setData] = useState({
+    x: 0,
+    y: 0,
+    z: 0,
+  });
+  const [subscription, setSubscription] = useState(null);
+
+  const _slow = () => Accelerometer.setUpdateInterval(400);
+  // const _fast = () => Magnetometer.setUpdateInterval(16);
+
+  const _subscribe = () => {
+    setSubscription(Accelerometer.addListener(gyro => {setData(gyro)}));
+  };
+
+  const _unsubscribe = () => {
+    subscription && subscription.remove();
+    setSubscription(null);
+  };
+
+  useEffect(() => {
+    _slow();
+    _subscribe();
+    return () => _unsubscribe();
+  }, []);
 
   const handleChangeToggle = () => {
     setToggle(!toggle);
@@ -15,10 +39,13 @@ export default function App() {
   }, [toggle]);
 
   useEffect(() => {
-    Shake.setShakeOpenListener(() => {
-      console.log('Shake opened!');
-  });
-  }, [])
+    if(x > 1) {
+      handleChangeToggle();
+    }else if(x < -0.90) {
+      handleChangeToggle();
+    }
+  }, [x]);
+
 
   return (
     <View style={toggle ? styles.containerLight : styles.container}>
@@ -32,6 +59,7 @@ export default function App() {
           source={toggle ? require("./assets/icons/logo-dio.png") : require("./assets/icons/logo-dio-white.png")}
         />
       </TouchableOpacity>
+      <Text>x: {x} y: {y} z: {z}</Text>
     </View>
   );
 }
